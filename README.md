@@ -6,9 +6,9 @@ This repository is intended to hold declarative configuration for **new Tencent 
 
 ## Current Status
 
-The repository contains a dedicated `infrastructure` AppProject and an empty Kustomize entry point at `argocd/applications`. The Terraform foundation now configures Crossplane core installation and separate infrastructure Argo CD bootstrap through `argocd_infra_gitops_repo_url`.
+The repository contains the `infrastructure` AppProject and three manual-sync Applications for a pinned Tencent Cloud Provider (`v0.8.6`), ProviderConfig, and a private development COS bucket. Runtime compatibility and cloud operations still require validation on the target cluster.
 
-Provider installation, ProviderConfig, cloud credentials, resource manifests, and automated validation are not implemented here yet. No cloud resources are declared. The platform and environment directories below remain planned.
+See [the COS pilot runbook](docs/COS_PILOT.md) for deployment order, readiness checks and cleanup. Replace the bucket's `REPLACE_APPID` placeholder before its first sync. The Terraform foundation supplies the credential Secret and uses `ap-guangzhou` for this pilot; no one-time Secret script is required.
 
 ## Architecture
 
@@ -51,9 +51,9 @@ Each cloud resource must have one active write manager.
 
 These boundaries apply to Kubernetes objects and Helm releases too: Terraform and Argo CD must not manage the same object or release concurrently.
 
-## Planned Repository Structure
+## Repository Structure
 
-`argocd/projects` and `argocd/applications` exist. The remaining directories below are proposed.
+`argocd`, `platform/providers`, `platform/provider-configs`, `environments/dev/cos` and `docs` exist. Compositions and the higher environment directories remain planned.
 
 ```text
 .
@@ -81,7 +81,7 @@ Environment directories organize declarations; they do not by themselves isolate
 
 1. **Prepare the foundation.** Use the infrastructure repository to provision Kubernetes and install Argo CD and Crossplane. Keep an execution path outside this cluster for rebuilding the foundation.
 2. **Select and pin versions.** Validate the Tencent Cloud Provider's compatibility with Crossplane and Kubernetes. Confirm that the required resource types, fields, and lifecycle operations are supported. Avoid floating `latest` versions.
-3. **Provide cloud credentials outside Git.** Use a dedicated Tencent Cloud identity with permissions limited to the intended resources. Deliver credentials through an approved secret mechanism; commit only references to those credentials.
+3. **Provide cloud credentials outside Git.** The Terraform foundation now creates `crossplane-system/tencentcloud-credentials` when Crossplane is enabled, using its existing `secret_id` and `secret_key` inputs. The `credentials` key contains JSON with those fields and `region`; only reference this Secret from ProviderConfig in Git. A separate one-time script is no longer required. Credentials are stored in Terraform state, so protect backend and plan access. The foundation's `crossplane_region` input defaults to inheriting its region, with the development configuration explicitly selecting `ap-guangzhou`. Terraform owns this Secret: do not also declare or update it through Argo CD or a script. Existing script-created Secrets require a reviewed one-time Terraform import before apply; see the foundation's `modules/k8s_cicd/CROSSPLANE.md`. Review the supplied cloud identity's permissions and limit them to the intended operations.
 4. **Configure infrastructure GitOps access.** Create a dedicated Argo CD AppProject with explicit repository, destination, and resource permissions. The existing application `business-apps` project only permits Deployments and Services and is not suitable for Crossplane resources.
 5. **Bootstrap platform configuration.** Synchronize Provider declarations first. Wait for Provider installation, controller health, and CRD availability before applying ProviderConfig or dependent resource objects. Establish explicit readiness gates between these stages.
 6. **Start with an isolated development resource.** Use a new test COS bucket, outside the Terraform state backend and management-cluster backup storage. Add its validated declaration in a PR and review its permissions, lifecycle, and expected cost.
@@ -91,15 +91,15 @@ The foundation pins Crossplane core to `1.20.3` as an initial candidate for the 
 
 Merge the two `argocd/` entry points into `main` before deploying the foundation bootstrap. The bootstrap reads `argocd/projects` and `argocd/applications` separately, with automatic self-healing enabled and pruning disabled. Here, only the bootstrap Applications are automatic; future Applications that reconcile cloud resources require separate review before enabling automatic sync. Private repositories need a dedicated Argo CD read credential outside Git.
 
-The `infrastructure` AppProject currently allows only `Provider` and `DeploymentRuntimeConfig` as cluster resources, and no namespaced resources. Extend the explicit allowlist for the validated ProviderConfig and cloud resource CRDs when adding them. Terraform owns the Crossplane Helm release and namespace; do not declare them here.
+The `infrastructure` AppProject allows `Provider`, `DeploymentRuntimeConfig`, Tencent Cloud `ProviderConfig`, and COS `Bucket` as cluster resources, and no namespaced resources. The credential Secret remains owned by Terraform. Extend the explicit allowlist only when adding further validated APIs. Terraform owns the Crossplane Helm release and namespace; do not declare them here.
 
-Validate the empty application entry point locally with:
+Render the three manual-sync Applications locally with:
 
 ```sh
 kubectl kustomize argocd/applications
 ```
 
-Empty output is expected until staged Applications are added. Do not add Applications targeting nonexistent directories or rely solely on child-Application sync waves to wait for Provider CRDs.
+Three Applications are expected. Sync them in the order described in the COS pilot runbook. Do not add Applications targeting nonexistent directories or rely solely on child-Application sync waves to wait for Provider CRDs.
 
 ## Change Workflow
 

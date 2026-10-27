@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cos-dev
+  namespace: argocd
+spec:
+  project: infrastructure
+  source:
+    repoURL: https://github.com/KaloSora/tencentcloud-infra-gitops.git
+    targetRevision: main
+    path: environments/dev/cos
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crossplane-system
+  # Sync manually after completing the preceding readiness checks.
+  syncPolicy: {}

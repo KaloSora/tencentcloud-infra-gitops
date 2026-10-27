@@ -1,0 +1,13 @@
+apiVersion: cos.tencentcloud.crossplane.io/v1alpha1
+kind: Bucket
+metadata:
+  name: crossplane-cos-test
+spec:
+  # Removing this Kubernetes object retains the cloud bucket.
+  deletionPolicy: Orphan
+  forProvider:
+    # Replace with your APPID before syncing; use a new, unused bucket name.
+    bucket: crossplane-cos-test-REPLACE_APPID
+    acl: private
+  providerConfigRef:
+    name: tencentcloud-dev

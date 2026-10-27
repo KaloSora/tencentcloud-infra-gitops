@@ -1,0 +1,11 @@
+apiVersion: tencentcloud.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: tencentcloud-dev
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: tencentcloud-credentials
+      key: credentials

@@ -10,12 +10,16 @@ spec:
   destinations:
     - server: https://kubernetes.default.svc
       namespace: crossplane-system
-  # Expand only after selecting and validating the Provider's actual CRDs.
+  # Explicit APIs required by the staged Provider and COS pilot.
   clusterResourceWhitelist:
     - group: pkg.crossplane.io
       kind: Provider
     - group: pkg.crossplane.io
       kind: DeploymentRuntimeConfig
+    - group: tencentcloud.crossplane.io
+      kind: ProviderConfig
+    - group: cos.tencentcloud.crossplane.io
+      kind: Bucket
   # An empty namespace whitelist alone does not deny namespaced resources.
   namespaceResourceBlacklist:
     - group: "*"

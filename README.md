@@ -6,7 +6,9 @@ This repository is intended to hold declarative configuration for **new Tencent 
 
 ## Current Status
 
-The repository currently contains documentation only. Crossplane installation, Provider configuration, Argo CD bootstrap, resource manifests, and automated validation have not been implemented here. The structure and workflow below describe the intended implementation.
+The repository contains a dedicated `infrastructure` AppProject and an empty Kustomize entry point at `argocd/applications`. The Terraform foundation now configures Crossplane core installation and separate infrastructure Argo CD bootstrap through `argocd_infra_gitops_repo_url`.
+
+Provider installation, ProviderConfig, cloud credentials, resource manifests, and automated validation are not implemented here yet. No cloud resources are declared. The platform and environment directories below remain planned.
 
 ## Architecture
 
@@ -51,7 +53,7 @@ These boundaries apply to Kubernetes objects and Helm releases too: Terraform an
 
 ## Planned Repository Structure
 
-The following directories are proposed; they do not exist yet.
+`argocd/projects` and `argocd/applications` exist. The remaining directories below are proposed.
 
 ```text
 .
@@ -85,7 +87,19 @@ Environment directories organize declarations; they do not by themselves isolate
 6. **Start with an isolated development resource.** Use a new test COS bucket, outside the Terraform state backend and management-cluster backup storage. Add its validated declaration in a PR and review its permissions, lifecycle, and expected cost.
 7. **Verify the complete lifecycle.** Check creation, a supported update, drift correction on an enforced mutable field, and controller restart recovery. Validate deletion or retention behavior using disposable resources before broader adoption.
 
-No deployment commands are provided yet because the concrete versions, CRDs, paths, and resource manifests have not been selected and validated.
+The foundation pins Crossplane core to `1.20.3` as an initial candidate for the currently configured Kubernetes `1.28.8`; Helm rendering does not establish runtime compatibility or current upstream support. Validate the version combination on the target cluster before adding Providers.
+
+Merge the two `argocd/` entry points into `main` before deploying the foundation bootstrap. The bootstrap reads `argocd/projects` and `argocd/applications` separately, with automatic self-healing enabled and pruning disabled. Here, only the bootstrap Applications are automatic; future Applications that reconcile cloud resources require separate review before enabling automatic sync. Private repositories need a dedicated Argo CD read credential outside Git.
+
+The `infrastructure` AppProject currently allows only `Provider` and `DeploymentRuntimeConfig` as cluster resources, and no namespaced resources. Extend the explicit allowlist for the validated ProviderConfig and cloud resource CRDs when adding them. Terraform owns the Crossplane Helm release and namespace; do not declare them here.
+
+Validate the empty application entry point locally with:
+
+```sh
+kubectl kustomize argocd/applications
+```
+
+Empty output is expected until staged Applications are added. Do not add Applications targeting nonexistent directories or rely solely on child-Application sync waves to wait for Provider CRDs.
 
 ## Change Workflow
 

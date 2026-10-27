@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infrastructure
+  namespace: argocd
+spec:
+  description: Crossplane infrastructure configuration, separate from business applications
+  sourceRepos:
+    - https://github.com/KaloSora/tencentcloud-infra-gitops.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: crossplane-system
+  # Expand only after selecting and validating the Provider's actual CRDs.
+  clusterResourceWhitelist:
+    - group: pkg.crossplane.io
+      kind: Provider
+    - group: pkg.crossplane.io
+      kind: DeploymentRuntimeConfig
+  # An empty namespace whitelist alone does not deny namespaced resources.
+  namespaceResourceBlacklist:
+    - group: "*"
+      kind: "*"

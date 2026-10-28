@@ -12,5 +12,14 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: crossplane-system
-  # Sync manually after completing the preceding readiness checks.
-  syncPolicy: {}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: true
+    retry:
+      limit: 10
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

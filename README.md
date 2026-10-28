@@ -6,9 +6,9 @@ This repository is intended to hold declarative configuration for **new Tencent 
 
 ## Current Status
 
-The repository contains the `infrastructure` AppProject and three manual-sync Applications for a pinned Tencent Cloud Provider (`v0.8.6`), ProviderConfig, and a private development COS bucket. Runtime compatibility and cloud operations still require validation on the target cluster.
+The repository contains the `infrastructure` AppProject and three auto-sync Applications for a pinned Tencent Cloud Provider (`v0.8.6`), ProviderConfig, and a private development COS bucket. Runtime compatibility and cloud operations still require validation on the target cluster.
 
-See [the COS pilot runbook](docs/COS_PILOT.md) for deployment order, readiness checks and cleanup. Replace the bucket's `REPLACE_APPID` placeholder before its first sync. The Terraform foundation supplies the credential Secret and uses `ap-guangzhou` for this pilot; no one-time Secret script is required.
+See [the COS pilot runbook](docs/COS_PILOT.md) for deployment order, readiness checks and cleanup. Confirm the bucket's APPID suffix before its first sync. The Terraform foundation supplies the credential Secret and uses `ap-guangzhou` for this pilot; no one-time Secret script is required.
 
 ## Architecture
 
@@ -89,17 +89,17 @@ Environment directories organize declarations; they do not by themselves isolate
 
 The foundation pins Crossplane core to `1.20.3` as an initial candidate for the currently configured Kubernetes `1.28.8`; Helm rendering does not establish runtime compatibility or current upstream support. Validate the version combination on the target cluster before adding Providers.
 
-Merge the two `argocd/` entry points into `main` before deploying the foundation bootstrap. The bootstrap reads `argocd/projects` and `argocd/applications` separately, with automatic self-healing enabled and pruning disabled. Here, only the bootstrap Applications are automatic; future Applications that reconcile cloud resources require separate review before enabling automatic sync. Private repositories need a dedicated Argo CD read credential outside Git.
+Merge the two `argocd/` entry points into `main` before deploying the foundation bootstrap. The bootstrap reads `argocd/projects` and `argocd/applications` separately, with automatic self-healing enabled and pruning disabled. The three infrastructure child Applications also enable automatic sync and self-healing with bounded retries. `cos-dev` enables pruning and allows an empty resource set; its Bucket uses `deletionPolicy: Delete` and `forceClean: true`, so removing the bucket declaration clears test data and deletes the cloud bucket. Provider and ProviderConfig pruning remains disabled. Merging into `main` can therefore trigger cloud changes. Private repositories need a dedicated Argo CD read credential outside Git.
 
 The `infrastructure` AppProject allows `Provider`, `DeploymentRuntimeConfig`, Tencent Cloud `ProviderConfig`, and COS `Bucket` as cluster resources, and no namespaced resources. The credential Secret remains owned by Terraform. Extend the explicit allowlist only when adding further validated APIs. Terraform owns the Crossplane Helm release and namespace; do not declare them here.
 
-Render the three manual-sync Applications locally with:
+Render the three auto-sync Applications locally with:
 
 ```sh
 kubectl kustomize argocd/applications
 ```
 
-Three Applications are expected. Sync them in the order described in the COS pilot runbook. Do not add Applications targeting nonexistent directories or rely solely on child-Application sync waves to wait for Provider CRDs.
+Three Applications are expected. For a fresh cluster, follow the Provider and CRD readiness checks in the COS pilot runbook; automatic sync does not enforce dependency readiness. Do not add Applications targeting nonexistent directories or rely solely on child-Application sync waves to wait for Provider CRDs.
 
 ## Change Workflow
 

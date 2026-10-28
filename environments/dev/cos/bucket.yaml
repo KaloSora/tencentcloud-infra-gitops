@@ -3,11 +3,13 @@ kind: Bucket
 metadata:
   name: crossplane-cos-test
 spec:
-  # Removing this Kubernetes object retains the cloud bucket.
-  deletionPolicy: Orphan
+  # Removing this Kubernetes object also deletes the cloud bucket.
+  deletionPolicy: Delete
   forProvider:
     # Replace with your APPID before syncing; use a new, unused bucket name.
     bucket: crossplane-cos-test-crossplane-1304007562
     acl: private
+    # Test bucket only: remove all objects before deleting the bucket.
+    forceClean: true
   providerConfigRef:
     name: tencentcloud-dev

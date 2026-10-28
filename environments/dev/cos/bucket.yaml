@@ -7,7 +7,7 @@ spec:
   deletionPolicy: Orphan
   forProvider:
     # Replace with your APPID before syncing; use a new, unused bucket name.
-    bucket: crossplane-cos-test-crossplane-bucket
+    bucket: crossplane-cos-test-crossplane-1304007562
     acl: private
   providerConfigRef:
     name: tencentcloud-dev

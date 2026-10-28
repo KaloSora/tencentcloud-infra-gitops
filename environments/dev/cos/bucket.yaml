@@ -9,6 +9,8 @@ spec:
     # Replace with your APPID before syncing; use a new, unused bucket name.
     bucket: crossplane-cos-test-crossplane-1304007562
     acl: private
+    tags:
+      managed-by: crossplane
     # Test bucket only: remove all objects before deleting the bucket.
     forceClean: true
   providerConfigRef:
